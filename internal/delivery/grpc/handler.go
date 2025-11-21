@@ -3,7 +3,6 @@ package grpc
 import (
 	"github.com/RubachokBoss/telegram_helper_bot/internal/domain"
 	"github.com/RubachokBoss/telegram_helper_bot/pkg/pb"
-	"google.golang.org/grpc"
 )
 
 type taskHandler struct {
