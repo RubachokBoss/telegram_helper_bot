@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package notes;
+
+option go_package = "github.com/RubachokBoss/telegram_helper_bot/pkg/pb";
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse) {}
+  rpc AssignTask(AssignTaskRequest) returns (AssignTaskResponse) {}
+  rpc UnassignTask(UnassignTaskRequest) returns (UnassignTaskResponse) {}
+  rpc ResolveTask(ResolveTaskRequest) returns (ResolveTaskResponse) {}
+  rpc GetUserTasks(GetUserTasksRequest) returns (GetUserTasksResponse) {}
+  rpc GetOwnerTasks(GetOwnerTasksRequest) returns (GetOwnerTasksResponse) {}
+}
+
+message Task {
+  string id = 1;
+  string text = 2;
+  string owner_id = 3;
+  string assigned_id = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message CreateTaskRequest {
+  string text = 1;
+  string owner_id = 2;
+}
+
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+message AssignTaskRequest {
+  string task_id = 1;
+  string user_id = 2;
+}
+
+message AssignTaskResponse {
+  Task task = 1;
+}
+
+message UnassignTaskRequest {
+  string task_id = 1;
+}
+
+message UnassignTaskResponse {
+  Task task = 1;
+}
+
+message ResolveTaskRequest {
+  string task_id = 1;
+}
+
+message ResolveTaskResponse {
+  bool success = 1;
+}
+
+message GetUserTasksRequest {
+  string user_id = 1;
+}
+
+message GetUserTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message GetOwnerTasksRequest {
+  string owner_id = 1;
+}
+
+message GetOwnerTasksResponse {
+  repeated Task tasks = 1;
+}
