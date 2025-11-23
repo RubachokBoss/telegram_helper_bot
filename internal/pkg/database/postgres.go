@@ -8,8 +8,8 @@ import (
 
 type Config struct {
 	Host     string
-	Port     int
-	Username string
+	Port     string
+	User     string
 	Password string
 	DBName   string
 	SSLMode  string
@@ -17,7 +17,7 @@ type Config struct {
 
 func NewPostgresConnection(config Config) (*sql.DB, error) {
 	configstr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.Username, config.Password, config.DBName, config.SSLMode)
+		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
 	db, err := sql.Open("postgres", configstr)
 	if err != nil {
 		return nil, err
