@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -16,11 +17,25 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
-	conn, err := grpc.Dial("localhost"+cfg.GRPC.Port, grpc.WithInsecure())
+
+	// Ждем пока gRPC сервер будет готов
+	var conn *grpc.ClientConn
+	for i := 0; i < 10; i++ {
+		conn, err = grpc.Dial(cfg.GRPC.Port, grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			log.Printf("Attempt %d: Failed to connect to gRPC server: %v", i+1, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		break
+	}
+
 	if err != nil {
-		log.Fatal("Failed to dial:", err)
+		log.Fatal("Failed to connect to gRPC server after retries:", err)
 	}
 	defer conn.Close()
+
+	log.Println("✅ Successfully connected to gRPC server")
 
 	client := pb.NewTaskServiceClient(conn)
 
@@ -28,9 +43,12 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create bot:", err)
 	}
-	log.Println("Bot is now running.  Press CTRL-C to exit.")
+
+	log.Println("✅ Bot created successfully")
+	log.Println("Bot is now running. Press CTRL-C to exit.")
 
 	go bot.Start()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan

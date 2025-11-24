@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"github.com/RubachokBoss/telegram_helper_bot/internal/domain"
+	"log"
 )
 
 type taskService struct {
@@ -33,18 +34,30 @@ func (s *taskService) CreateTask(text, ownerID string) (*domain.Task, error) {
 }
 
 func (s *taskService) AssignTask(taskID, userID string) (*domain.Task, error) {
+	log.Printf("🔄 Assigning task %s to user %s", taskID, userID)
+
+	// 1. Находим задачу
 	task, err := s.repo.FindByID(taskID)
 	if err != nil {
+		log.Printf("❌ Error finding task %s: %v", taskID, err)
 		return nil, err
 	}
 	if task == nil {
+		log.Printf("❌ Task not found: %s", taskID)
 		return nil, errors.New("task not found")
 	}
+
+	log.Printf("📋 Task found: Owner=%s, Current Assignee=%s", task.OwnerID, task.AssignedID)
+
+	// 2. Назначаем задачу
 	task.AssignedID = userID
 	err = s.repo.Update(task)
 	if err != nil {
+		log.Printf("❌ Error updating task %s: %v", taskID, err)
 		return nil, err
 	}
+
+	log.Printf("✅ Task %s assigned to %s", taskID, userID)
 	return task, nil
 }
 

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"github.com/RubachokBoss/telegram_helper_bot/internal/domain"
 	"github.com/google/uuid"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -18,7 +20,7 @@ func NewTaskRepository(db *sql.DB) *taskRepository {
 }
 
 func (r *taskRepository) Create(task *domain.Task) error {
-	task.ID = uuid.New().String()
+	task.ID = strings.ReplaceAll(uuid.New().String(), "-", "")
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
 	query := `INSERT INTO tasks (id, text, owner_id, assigned_id, created_at, updated_at)
@@ -28,18 +30,23 @@ VALUES ($1, $2, $3, $4, $5, $6)`
 }
 
 func (r *taskRepository) FindByID(id string) (*domain.Task, error) {
-	query := `SELECT id, text, owner_id, assigned_id, created_at, updated_at WHERE id = $1`
+	log.Printf("🔍 Finding task by ID: %s", id)
+
+	query := `SELECT id, text, owner_id, assigned_id, created_at, updated_at FROM tasks WHERE id = $1`
 	row := r.db.QueryRow(query, id)
 
 	var task domain.Task
-
 	err := row.Scan(&task.ID, &task.Text, &task.OwnerID, &task.AssignedID, &task.CreatedAt, &task.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("⚠️ Task not found: %s", id)
 			return nil, nil
 		}
+		log.Printf("❌ Error finding task %s: %v", id, err)
 		return nil, err
 	}
+
+	log.Printf("✅ Task found: %s - %s", task.ID, task.Text)
 	return &task, nil
 }
 
@@ -85,10 +92,23 @@ func (r *taskRepository) FindByOwnerID(ownerID string) ([]*domain.Task, error) {
 
 func (r *taskRepository) Update(task *domain.Task) error {
 	task.UpdatedAt = time.Now()
-	query := `UPDATE tasks set text = $1, owner_id = $2, assigned_id = $3, updated_at = $4 WHERE id = $5`
 
-	_, err := r.db.Exec(query, task.Text, task.OwnerID, task.AssignedID, task.UpdatedAt, task.ID)
-	return err
+	query := `UPDATE tasks SET text = $1, owner_id = $2, assigned_id = $3, updated_at = $4 WHERE id = $5`
+
+	log.Printf("🔍 SQL: %s", query)
+	log.Printf("🔍 Params: text=%s, owner_id=%s, assigned_id=%s, updated_at=%s, id=%s",
+		task.Text, task.OwnerID, task.AssignedID, task.UpdatedAt, task.ID)
+
+	result, err := r.db.Exec(query, task.Text, task.OwnerID, task.AssignedID, task.UpdatedAt, task.ID)
+	if err != nil {
+		log.Printf("❌ SQL error: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Task updated successfully. Rows affected: %d", rowsAffected)
+
+	return nil
 }
 func (r *taskRepository) Delete(task *domain.Task) error {
 	query := `DELETE FROM tasks WHERE id = $1`

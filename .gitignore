@@ -1,0 +1,25 @@
+# Конфигурационные файлы с секретами
+.env
+telegram_token.txt
+secrets/
+
+# Локальные файлы БД
+*.db
+*.sqlite
+*.sqlite3
+
+# Логи
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Бинарные файлы
+/bin/

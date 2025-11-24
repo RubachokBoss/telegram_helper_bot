@@ -73,13 +73,13 @@ func (b *Bot) HandlerCommands(message *tgbotapi.Message) {
 		command := message.Command()
 		if strings.HasPrefix(command, "assign_") {
 			taskID := strings.TrimPrefix(command, "assign_")
-			b.assigntask(ctx, message.Chat.ID, taskID, userId)
+			b.assigntask(ctx, message.Chat.ID, userId, taskID)
 		} else if strings.HasPrefix(command, "unassign_") {
 			taskID := strings.TrimPrefix(command, "unassign_")
-			b.unassigntask(ctx, message.Chat.ID, taskID, userId)
+			b.unassigntask(ctx, message.Chat.ID, taskID)
 		} else if strings.HasPrefix(command, "resolve_") {
 			taskID := strings.TrimPrefix(command, "resolve_")
-			b.resolvetask(ctx, message.Chat.ID, taskID, userId)
+			b.resolvetask(ctx, message.Chat.ID, taskID)
 		} else {
 			b.sendMessage(message.Chat.ID, "Неизвестная команда")
 		}

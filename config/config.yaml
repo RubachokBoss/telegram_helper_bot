@@ -2,7 +2,7 @@ postgres:
   host: "localhost"
   port: "5432"
   user: "postgres"
-  password: "password"
+  password: "durov3002"
   dbname: "task_manager"
   sslmode: "disable"
 
@@ -10,4 +10,4 @@ grpc:
   port: ":50051"
 
 telegram:
-  token: "YOUR_BOT_TOKEN"
+  token: ""

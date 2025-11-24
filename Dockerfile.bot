@@ -1,0 +1,41 @@
+# Используем официальный образ Go
+FROM golang:1.19-alpine AS builder
+
+# Устанавливаем зависимости для сборки
+RUN apk add --no-cache git
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем файлы модулей
+COPY go.mod go.sum ./
+
+# Скачиваем зависимости
+RUN go mod download
+
+# Копируем весь исходный код
+COPY . .
+
+# Переходим в директорию сервиса и собираем
+WORKDIR /app/cmd/telegram-bot
+RUN CGO_ENABLED=0 GOOS=linux go build -o /telegram-bot
+
+# Финальный образ
+FROM alpine:latest
+
+# Устанавливаем необходимые пакеты
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# Копируем бинарник из стадии сборки
+COPY --from=builder /telegram-bot .
+
+# Копируем конфигурационные файлы
+COPY config/config.yaml ./config/
+
+# Создаем директорию для логов
+RUN mkdir -p /var/log/app
+
+# Запускаем приложение
+CMD ["./telegram-bot"]

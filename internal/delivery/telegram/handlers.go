@@ -33,7 +33,7 @@ func (b *Bot) assigntask(ctx context.Context, chatID int64, userID, taskID strin
 	msg := fmt.Sprintf("Задача назначена! \nID: %s\nИсполнитель: %s", task.Task.Id, task.Task.AssignedId)
 	b.sendMessage(chatID, msg)
 }
-func (b *Bot) unassigntask(ctx context.Context, chatID int64, userID, taskID string) {
+func (b *Bot) unassigntask(ctx context.Context, chatID int64, taskID string) {
 	task, err := b.client.UnassignTask(ctx, &pb.UnassignTaskRequest{
 		TaskId: taskID,
 	})
@@ -44,7 +44,7 @@ func (b *Bot) unassigntask(ctx context.Context, chatID int64, userID, taskID str
 	msg := fmt.Sprintf("Задача снята!\nID: %s", task.Task.Id)
 	b.sendMessage(chatID, msg)
 }
-func (b *Bot) resolvetask(ctx context.Context, chatID int64, userID, taskID string) {
+func (b *Bot) resolvetask(ctx context.Context, chatID int64, taskID string) {
 	task, err := b.client.ResolveTask(ctx, &pb.ResolveTaskRequest{
 		TaskId: taskID,
 	})
@@ -100,6 +100,7 @@ func (b *Bot) showTasks(chatID int64, tasks []*pb.Task, header string) {
 		message.WriteString(fmt.Sprintf("Создана: %s\n", formatTime(task.CreatedAt)))
 		message.WriteString("---\n")
 	}
+	b.sendMessage(chatID, message.String())
 }
 func (b *Bot) sendMessage(chatID int64, message string) {
 	msg := tgbotapi.NewMessage(chatID, message)

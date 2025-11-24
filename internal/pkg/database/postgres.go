@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log"
 )
 
@@ -15,27 +16,33 @@ type Config struct {
 	SSLMode  string
 }
 
-func NewPostgresConnection(config Config) (*sql.DB, error) {
-	configstr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
-	db, err := sql.Open("postgres", configstr)
+func NewPostgresConnection(cfg Config) (*sql.DB, error) {
+	// Собираем все параметры
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=10 application_name=task_manager",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName,
+	)
+
+	log.Printf("Connecting to: host=%s, port=%s, dbname=%s", cfg.Host, cfg.Port, cfg.DBName)
+
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open failed: %v", err)
 	}
-	err = db.Ping()
+
+	// Тестовый запрос для проверки
+	var result int
+	err = db.QueryRow("SELECT 1").Scan(&result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("test query failed: %v", err)
 	}
-	err = createTable(db)
-	if err != nil {
-		return nil, err
-	}
-	log.Println("Successfully connected to database")
+
+	log.Println("✅ Connected to PostgreSQL database successfully!")
 	return db, nil
 }
 
-func createTable(db *sql.DB) error {
-	sqltablequery := `
+func createTables(db *sql.DB) error {
+	query := `
 	CREATE TABLE IF NOT EXISTS tasks (
 		id VARCHAR(36) PRIMARY KEY,
 		text TEXT NOT NULL,
@@ -48,6 +55,7 @@ func createTable(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_tasks_owner_id ON tasks(owner_id);
 	CREATE INDEX IF NOT EXISTS idx_tasks_assigned_id ON tasks(assigned_id);
 	`
-	_, err := db.Exec(sqltablequery)
+
+	_, err := db.Exec(query)
 	return err
 }
