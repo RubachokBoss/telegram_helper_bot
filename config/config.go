@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -23,6 +24,21 @@ type Config struct {
 	Telegram struct {
 		Token string `yaml:"token"`
 	} `yaml:"telegram"`
+
+	WebAPI struct {
+		Port string `yaml:"port"`
+	} `yaml:"web_api"`
+
+	JWT struct {
+		Secret string `yaml:"secret"`
+	} `yaml:"jwt"`
+
+	Redis struct {
+		Host     string `yaml:"host"`
+		Port     string `yaml:"port"`
+		Password string `yaml:"password"`
+		DB       int    `yaml:"db"`
+	} `yaml:"redis"`
 }
 
 func Load(configPath string) (*Config, error) {
@@ -65,6 +81,38 @@ func Load(configPath string) (*Config, error) {
 		config.Telegram.Token = token
 	}
 
+	// Web API порт
+	if webAPIPort := os.Getenv("WEB_API_PORT"); webAPIPort != "" {
+		config.WebAPI.Port = webAPIPort
+	} else {
+		config.WebAPI.Port = "8080" // default
+	}
+
+	// JWT секрет
+	if jwtSecret := os.Getenv("JWT_SECRET"); jwtSecret != "" {
+		config.JWT.Secret = jwtSecret
+	} else {
+		config.JWT.Secret = "your-secret-key-change-in-production" // default for development
+	}
+
+	// Redis конфигурация
+	if redisHost := os.Getenv("REDIS_HOST"); redisHost != "" {
+		config.Redis.Host = redisHost
+	} else {
+		config.Redis.Host = "localhost" // default
+	}
+	if redisPort := os.Getenv("REDIS_PORT"); redisPort != "" {
+		config.Redis.Port = redisPort
+	} else {
+		config.Redis.Port = "6379" // default
+	}
+	if redisPassword := os.Getenv("REDIS_PASSWORD"); redisPassword != "" {
+		config.Redis.Password = redisPassword
+	}
+	if redisDB := os.Getenv("REDIS_DB"); redisDB != "" {
+		fmt.Sscanf(redisDB, "%d", &config.Redis.DB)
+	}
+
 	// Проверяем, что токен установлен
 	if config.Telegram.Token == "" {
 		return nil, fmt.Errorf("telegram bot token is required")
@@ -77,6 +125,11 @@ func Load(configPath string) (*Config, error) {
 	fmt.Printf("   DB User: %s\n", config.Postgres.User)
 	fmt.Printf("   gRPC Port: %s\n", config.GRPC.Port)
 	fmt.Printf("   Telegram Token: %s...\n", config.Telegram.Token[:10]) // Показываем только первые 10 символов
+	fmt.Printf("   Web API Port: %s\n", config.WebAPI.Port)
+	fmt.Printf("   JWT Secret: %s...\n", config.JWT.Secret[:10]) // Показываем только первые 10 символов
+	fmt.Printf("   Redis Host: %s\n", config.Redis.Host)
+	fmt.Printf("   Redis Port: %s\n", config.Redis.Port)
+	fmt.Printf("   Redis DB: %d\n", config.Redis.DB)
 
 	return config, nil
 }

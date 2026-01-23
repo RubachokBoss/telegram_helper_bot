@@ -2,16 +2,19 @@ package main
 
 import (
 	"database/sql"
-	"github.com/RubachokBoss/telegram_helper_bot/config"
-	"github.com/RubachokBoss/telegram_helper_bot/internal/delivery/grpc"
-	"github.com/RubachokBoss/telegram_helper_bot/internal/pkg/database"
-	"github.com/RubachokBoss/telegram_helper_bot/internal/repository/postgres"
-	"github.com/RubachokBoss/telegram_helper_bot/internal/service"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/RubachokBoss/telegram_helper_bot/config"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/delivery/grpc"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/pkg/database"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/repository/postgres"
+	redisRepo "github.com/RubachokBoss/telegram_helper_bot/internal/repository/redis"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/service"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -46,7 +49,33 @@ func main() {
 
 	log.Println("✅ Successfully connected to database")
 
-	taskRepo := postgres.NewTaskRepository(db)
+	// Подключаемся к Redis
+	var redisClient *redis.Client
+	for i := 0; i < 10; i++ {
+		redisClient, err = database.NewRedisClient(database.RedisConfig{
+			Host:     cfg.Redis.Host,
+			Port:     cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+		})
+		if err != nil {
+			log.Printf("Attempt %d: Failed to connect to Redis: %v", i+1, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		break
+	}
+
+	if err != nil {
+		log.Fatal("Failed to connect to Redis after retries:", err)
+	}
+	defer redisClient.Close()
+
+	log.Println("✅ Successfully connected to Redis")
+
+	// Создаем репозитории: PostgreSQL + Redis cache
+	baseRepo := postgres.NewTaskRepository(db)
+	taskRepo := redisRepo.NewTaskCacheRepository(redisClient, baseRepo)
 	taskService := service.NewTaskService(taskRepo)
 	grpcServer := grpc.NewServer(taskService)
 

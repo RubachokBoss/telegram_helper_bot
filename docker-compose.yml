@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   notes-service:
     build:
       context: .
@@ -27,9 +42,29 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  web-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapi
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      - GRPC_HOST=notes-service:50051
+    depends_on:
+      postgres:
+        condition: service_healthy
+      notes-service:
+        condition: service_started
     networks:
       - app-network
     restart: unless-stopped
@@ -49,6 +84,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   app-network:

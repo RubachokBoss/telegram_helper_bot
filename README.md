@@ -51,6 +51,10 @@
 │                               │                               │
 │ Docker Container              │ Docker Container              │ Docker Container
 └───────────────────────────────┼───────────────────────────────┘
+│                               │
+│                               │ Redis Cache
+│                               │ (In-memory)
+└───────────────────────────────┼───────────────────────────────
 │
 ┌─────┴─────┐
 │ Docker    │
@@ -77,13 +81,23 @@
    - Индексы для быстрого поиска
    - Надежное хранение данных
 
+4. **Redis Cache**
+   - Кэширование часто запрашиваемых данных
+   - Ускорение чтения списков задач пользователей
+   - Автоматическая инвалидация при изменениях
+
 ### Поток данных:
 
 ```
-Пользователь → Telegram → Bot API → Telegram Bot → gRPC → Notes Service → PostgreSQL
+Пользователь → Telegram → Bot API → Telegram Bot → gRPC → Notes Service → Redis/PostgreSQL
 │
-Ответ ← Форматирование ← Telegram Bot ← gRPC ← Notes Service ← База данных ←┘
+Ответ ← Форматирование ← Telegram Bot ← gRPC ← Notes Service ← Кэш/База данных ←┘
 ```
+
+**Кэширование:**
+- **Cache-aside паттерн**: проверка Redis → PostgreSQL (если нет в кэше)
+- **TTL стратегия**: 10 мин для списков задач, 30 мин для индивидуальных задач
+- **Инвалидация**: автоматическая очистка кэша при изменениях данных
 
 ## 🛠 Технологический стек
 
@@ -101,6 +115,7 @@
 - `google.golang.org/grpc` - gRPC фреймворк
 - `google/uuid` - генерация уникальных идентификаторов
 - `gopkg.in/yaml.v2` - парсинг YAML конфигураций
+- `github.com/redis/go-redis/v9` - Redis клиент для кэширования
 
 ### Инфраструктура:
 - **Многостадийные Docker образы** - оптимизация размера
@@ -171,6 +186,12 @@ POSTGRES_DB=task_manager
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMnOpQRstUvWxYz123456789
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 
 # Service Configuration (опционально)
 POSTGRES_HOST=postgres

@@ -11,3 +11,9 @@ grpc:
 
 telegram:
   token: ""
+
+web_api:
+  port: ":8080"
+
+jwt:
+  secret: "your-secret-key-change-in-production"
