@@ -9,27 +9,30 @@ import (
 
 	"github.com/RubachokBoss/telegram_helper_bot/config"
 	"github.com/RubachokBoss/telegram_helper_bot/internal/domain"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/pkg/cache"
 	"github.com/RubachokBoss/telegram_helper_bot/pkg/pb"
 )
 
 type Server struct {
-	mux        *http.ServeMux
-	authSvc    domain.AuthService
-	taskClient pb.TaskServiceClient
-	config     *config.Config
-	server     *http.Server
+	mux         *http.ServeMux
+	authSvc     domain.AuthService
+	taskClient  pb.TaskServiceClient
+	cacheClient *cache.TaskCacheClient // Общий кеш Redis
+	config      *config.Config
+	server      *http.Server
 }
 
 type contextKey string
 
 const userContextKey contextKey = "user"
 
-func NewServer(authSvc domain.AuthService, taskClient pb.TaskServiceClient, cfg *config.Config) *Server {
+func NewServer(authSvc domain.AuthService, taskClient pb.TaskServiceClient, cacheClient *cache.TaskCacheClient, cfg *config.Config) *Server {
 	server := &Server{
-		mux:        http.NewServeMux(),
-		authSvc:    authSvc,
-		taskClient: taskClient,
-		config:     cfg,
+		mux:         http.NewServeMux(),
+		authSvc:     authSvc,
+		taskClient:  taskClient,
+		cacheClient: cacheClient,
+		config:      cfg,
 	}
 
 	server.setupRoutes()

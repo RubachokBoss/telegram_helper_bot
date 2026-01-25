@@ -260,7 +260,7 @@ func (r *taskCacheRepository) updateOwnerCacheWithNewTask(ctx context.Context, t
 	updatedTasks := append([]*domain.Task{task}, cachedTasks...)
 
 	// Сохраняем обновленный массив в кэш
-	return r.cacheTasks(ctx, cacheKey, updatedTasks, database.OwnerTasksTTL)
+	r.cacheTasks(ctx, cacheKey, updatedTasks, database.OwnerTasksTTL)
 
 	log.Printf("✅ Added new task to owner cache for %s, total tasks: %d", task.OwnerID, len(updatedTasks))
 	return nil

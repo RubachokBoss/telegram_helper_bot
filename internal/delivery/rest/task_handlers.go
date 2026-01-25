@@ -72,9 +72,24 @@ func (s *Server) getUserTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Сначала пытаемся получить из общего кеша
+	if s.cacheClient != nil && s.cacheClient.IsAvailable() {
+		cachedTasks, err := s.cacheClient.GetUserTasks(ctx, userID)
+		if err == nil && len(cachedTasks) > 0 {
+			// Конвертируем domain.Task в pb.Task для ответа
+			pbTasks := make([]*pb.Task, len(cachedTasks))
+			for i, task := range cachedTasks {
+				pbTasks[i] = domainTaskToPB(task)
+			}
+			s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": pbTasks, "source": "cache"})
+			return
+		}
+	}
+
+	// Если нет в кеше, идем через gRPC
 	response, err := s.taskClient.GetUserTasks(ctx, &pb.GetUserTasksRequest{
 		UserId: userID,
 	})
@@ -83,7 +98,7 @@ func (s *Server) getUserTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": response.Tasks})
+	s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": response.Tasks, "source": "database"})
 }
 
 // GetOwnerTasks handles getting tasks owned by a user
@@ -102,9 +117,24 @@ func (s *Server) getOwnerTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Сначала пытаемся получить из общего кеша
+	if s.cacheClient != nil && s.cacheClient.IsAvailable() {
+		cachedTasks, err := s.cacheClient.GetOwnerTasks(ctx, ownerID)
+		if err == nil && len(cachedTasks) > 0 {
+			// Конвертируем domain.Task в pb.Task для ответа
+			pbTasks := make([]*pb.Task, len(cachedTasks))
+			for i, task := range cachedTasks {
+				pbTasks[i] = domainTaskToPB(task)
+			}
+			s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": pbTasks, "source": "cache"})
+			return
+		}
+	}
+
+	// Если нет в кеше, идем через gRPC
 	response, err := s.taskClient.GetOwnerTasks(ctx, &pb.GetOwnerTasksRequest{
 		OwnerId: ownerID,
 	})
@@ -113,7 +143,7 @@ func (s *Server) getOwnerTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": response.Tasks})
+	s.writeJSONSuccess(w, http.StatusOK, map[string]interface{}{"tasks": response.Tasks, "source": "database"})
 }
 
 // AssignTask handles task assignment to a user

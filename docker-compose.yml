@@ -60,8 +60,12 @@ services:
     env_file: .env
     environment:
       - GRPC_HOST=notes-service:50051
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       notes-service:
         condition: service_started
@@ -76,8 +80,13 @@ services:
     env_file: .env
     environment:
       - GRPC_HOST=notes-service:50051
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
-      - notes-service
+      redis:
+        condition: service_healthy
+      notes-service:
+        condition: service_started
     networks:
       - app-network
     restart: unless-stopped

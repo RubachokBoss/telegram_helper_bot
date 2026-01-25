@@ -30,9 +30,7 @@ func NewPostgresConnection(cfg Config) (*sql.DB, error) {
 		return nil, fmt.Errorf("open failed: %v", err)
 	}
 
-	// Тестовый запрос для проверки
-	var result int
-	err = db.QueryRow("SELECT 1").Scan(&result)
+	err = db.Ping()
 	if err != nil {
 		return nil, fmt.Errorf("test query failed: %v", err)
 	}

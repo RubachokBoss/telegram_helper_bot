@@ -2,27 +2,38 @@ package telegram
 
 import (
 	"context"
+	"github.com/RubachokBoss/telegram_helper_bot/internal/pkg/cache"
 	"github.com/RubachokBoss/telegram_helper_bot/pkg/pb"
 	"log"
 	"strings"
 
+	"github.com/redis/go-redis/v9"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type Bot struct {
-	bot    *tgbotapi.BotAPI
-	client pb.TaskServiceClient
+	bot         *tgbotapi.BotAPI
+	client      pb.TaskServiceClient
+	redisClient *redis.Client      // Общий кеш Redis
+	cacheClient *cache.TaskCacheClient // Клиент для работы с кешем
 }
 
-func NewBot(token string, client pb.TaskServiceClient) (*Bot, error) {
+func NewBot(token string, client pb.TaskServiceClient, redisClient *redis.Client, cacheClient *cache.TaskCacheClient) (*Bot, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+	
+	if cacheClient != nil && cacheClient.IsAvailable() {
+		log.Println("✅ Telegram Bot connected to shared Redis cache")
+	}
+	
 	return &Bot{
-		bot:    bot,
-		client: client,
+		bot:         bot,
+		client:      client,
+		redisClient: redisClient,
+		cacheClient: cacheClient,
 	}, nil
 }
 

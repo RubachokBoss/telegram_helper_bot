@@ -3,9 +3,12 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/RubachokBoss/telegram_helper_bot/pkg/pb"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"strings"
 )
 
 func (b *Bot) createTask(ctx context.Context, chatID int64, text, userID string) {
@@ -59,6 +62,29 @@ func (b *Bot) resolvetask(ctx context.Context, chatID int64, taskID string) {
 	}
 }
 func (b *Bot) getUserTasks(ctx context.Context, chatID int64, userID string) {
+	// Сначала пытаемся получить из общего кеша
+	if b.cacheClient != nil && b.cacheClient.IsAvailable() {
+		cachedTasks, err := b.cacheClient.GetUserTasks(ctx, userID)
+		if err == nil && len(cachedTasks) > 0 {
+			log.Printf("✅ User tasks found in shared cache for user: %s", userID)
+			// Конвертируем domain.Task в pb.Task
+			pbTasks := make([]*pb.Task, len(cachedTasks))
+			for i, task := range cachedTasks {
+				pbTasks[i] = &pb.Task{
+					Id:         task.ID,
+					Text:       task.Text,
+					OwnerId:    task.OwnerID,
+					AssignedId: task.AssignedID,
+					CreatedAt:  task.CreatedAt.Format("2006-01-02 15:04:05"),
+					UpdatedAt:  task.UpdatedAt.Format("2006-01-02 15:04:05"),
+				}
+			}
+			b.showTasks(chatID, pbTasks, "Ваши Задачи (из кеша)")
+			return
+		}
+	}
+
+	// Если нет в кеше, идем через gRPC
 	tasks, err := b.client.GetUserTasks(ctx, &pb.GetUserTasksRequest{
 		UserId: userID,
 	})
@@ -69,6 +95,29 @@ func (b *Bot) getUserTasks(ctx context.Context, chatID int64, userID string) {
 	b.showTasks(chatID, tasks.Tasks, "Ваши Задачи")
 }
 func (b *Bot) getOwnerTasks(ctx context.Context, chatID int64, userId string) {
+	// Сначала пытаемся получить из общего кеша
+	if b.cacheClient != nil && b.cacheClient.IsAvailable() {
+		cachedTasks, err := b.cacheClient.GetOwnerTasks(ctx, userId)
+		if err == nil && len(cachedTasks) > 0 {
+			log.Printf("✅ Owner tasks found in shared cache for owner: %s", userId)
+			// Конвертируем domain.Task в pb.Task
+			pbTasks := make([]*pb.Task, len(cachedTasks))
+			for i, task := range cachedTasks {
+				pbTasks[i] = &pb.Task{
+					Id:         task.ID,
+					Text:       task.Text,
+					OwnerId:    task.OwnerID,
+					AssignedId: task.AssignedID,
+					CreatedAt:  task.CreatedAt.Format("2006-01-02 15:04:05"),
+					UpdatedAt:  task.UpdatedAt.Format("2006-01-02 15:04:05"),
+				}
+			}
+			b.showTasks(chatID, pbTasks, "Задачи созданные вами (из кеша)")
+			return
+		}
+	}
+
+	// Если нет в кеше, идем через gRPC
 	tasks, err := b.client.GetOwnerTasks(ctx, &pb.GetOwnerTasksRequest{
 		OwnerId: userId,
 	})
